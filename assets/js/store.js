@@ -77,9 +77,22 @@
     return c;
   }
 
+  /* 昵称必须全局唯一：否则别人用同名就能查到、甚至取消掉我的预约 */
+  function nameTaken(name) {
+    var n = String(name == null ? "" : name).trim().toLowerCase();
+    if (!n) return false;
+    return all().some(function (b) {
+      return String(b.name || "").trim().toLowerCase() === n;
+    });
+  }
+
   /* 创建预约。contact 至少一项有值（昵称或手机号） */
   function createBooking(input) {
     var list = all();
+    var name = String(input.name || "").trim();
+    if (name && nameTaken(name)) {
+      throw new Error("昵称「" + name + "」已被使用，请换一个昵称");
+    }
     var book = {
       id: "b_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       code: uniqueCode(list),
@@ -87,11 +100,15 @@
       itemName: input.itemName,
       itemEmoji: input.itemEmoji,
       cat: input.cat,
+      prov: input.prov || "",
+      city: input.city || "",
+      dist: input.dist || "",
+      addr: input.addr || "",
       unitPrice: input.unitPrice,
       qty: input.qty,
       date: input.date,
       slot: input.slot,
-      name: input.name || "",
+      name: name,
       phone: input.phone || "",
       people: input.people,
       amount: input.unitPrice * input.qty,
@@ -147,7 +164,9 @@
     return all().filter(function (b) {
       return (b.name && b.name.toLowerCase().indexOf(kw) !== -1) ||
              (b.phone && b.phone.indexOf(kw) !== -1) ||
-             (b.code && b.code.toLowerCase() === kw);
+             (b.code && b.code.toLowerCase() === kw) ||
+             (b.itemName && b.itemName.toLowerCase().indexOf(kw) !== -1) ||
+             ([b.prov, b.city, b.dist, b.addr].join(" ").toLowerCase().indexOf(kw) !== -1);
     }).sort(function (a, b2) {
       return b2.createdAt.localeCompare(a.createdAt);
     });
@@ -172,11 +191,11 @@
   }
 
   function toCSV(list) {
-    var head = ["预约码", "项目", "分类", "日期", "时段", "份数/人数", "单价", "合计", "昵称", "手机号", "备注", "状态", "提交时间"];
+    var head = ["预约码", "项目", "分类", "省份", "城市", "区县", "地址", "日期", "时段", "份数/人数", "单价", "合计", "昵称", "手机号", "备注", "状态", "提交时间"];
     var lines = [head.map(csvCell).join(",")];
     list.forEach(function (b) {
       lines.push([
-        b.code, b.itemName, b.cat, b.date, b.slot, b.people,
+        b.code, b.itemName, b.cat, b.prov, b.city, b.dist, b.addr, b.date, b.slot, b.people,
         b.unitPrice, b.amount, b.name, b.phone, b.note,
         (STATUS[b.status] || {}).label || b.status, fmtDateTime(b.createdAt)
       ].map(csvCell).join(","));
@@ -242,15 +261,20 @@
     if (!Array.isArray(incoming)) throw new Error("文件格式不正确");
 
     var existing = all();
-    var ids = {};
-    existing.forEach(function (b) { ids[b.id] = true; });
+    var ids = {}, names = {};
+    existing.forEach(function (b) {
+      ids[b.id] = true;
+      if (b.name) names[String(b.name).trim().toLowerCase()] = true;
+    });
     var added = 0;
     incoming.forEach(function (b) {
-      if (b && b.id && !ids[b.id]) {
-        existing.push(b);
-        ids[b.id] = true;
-        added++;
-      }
+      if (!b || !b.id || ids[b.id]) return;
+      var bn = String(b.name || "").trim().toLowerCase();
+      if (bn && names[bn]) return;
+      existing.push(b);
+      ids[b.id] = true;
+      if (bn) names[bn] = true;
+      added++;
     });
     save(existing);
     return added;
@@ -264,6 +288,7 @@
     settings: settings,
     saveSettings: saveSettings,
     createBooking: createBooking,
+    nameTaken: nameTaken,
     find: find,
     setStatus: setStatus,
     remove: remove,
