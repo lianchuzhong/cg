@@ -2,6 +2,18 @@
 
 无需注册、无需登录的吃喝玩乐在线预约站点。访客只要填写**昵称**或**手机号**任一项即可提交预约，并拿到预约码。
 
+## 在线访问
+
+> 站点已经部署到 GitHub Pages，直接点下面的链接就能用，**不用下载代码**。
+
+| 页面 | 地址 |
+| --- | --- |
+| 预约首页 | https://lianchuzhong.github.io/cg/ |
+| 商家管理台 | https://lianchuzhong.github.io/cg/admin.html |
+| 仓库源码 | https://github.com/lianchuzhong/cg |
+
+如果访问不到，通常是 `github.io` 在当前网络被限制，换个网络或用浏览器的代理再试。
+
 ## 特点
 
 - 免登录预约：昵称 / 手机号 任填其一
