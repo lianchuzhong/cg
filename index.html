@@ -43,8 +43,18 @@
       <h2>选择要玩的项目</h2>
       <div class="filters" id="filters" role="tablist"></div>
     </div>
+
+    <div class="searchbar">
+      <input type="search" id="kw" class="input search-kw" placeholder="搜索项目名 / 描述 / 地址 / 标签" maxlength="30" aria-label="搜索项目">
+      <select class="input sel-region" id="fProv" aria-label="省份"></select>
+      <select class="input sel-region" id="fCity" aria-label="城市"></select>
+      <select class="input sel-region" id="fDist" aria-label="区县"></select>
+      <button class="btn btn-ghost btn-sm" id="resetFilter">重置</button>
+      <span class="search-count" id="resultCount"></span>
+    </div>
+
     <div class="grid" id="cardGrid"></div>
-    <p class="empty" id="listEmpty" hidden>暂无项目</p>
+    <p class="empty" id="listEmpty" hidden>没有符合条件的项目，换个关键词或地区试试</p>
   </section>
 
   <section class="section" id="mine">
@@ -62,12 +72,6 @@
   </section>
 
 </main>
-
-<footer class="site-footer">
-  <div class="wrap">
-    <p>吃喝玩乐预约 · 演示站点，数据保存在你自己的浏览器中</p>
-  </div>
-</footer>
 
 <div class="modal" id="modal" hidden>
   <div class="modal-mask" data-close></div>
