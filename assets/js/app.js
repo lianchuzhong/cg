@@ -317,6 +317,15 @@
     $("#mineKey").value = "";
     renderMine();
   });
+  $("#mineExport").addEventListener("click", function () {
+    var list = Store.all();
+    if (!list.length) return void toast("本机还没有预约记录", "err");
+    Store.exportJSON(list)
+      .then(function (r) {
+        toast(r.method === "picker" ? "已保存到 " + r.suggested : "已下载，请在浏览器下载目录查看（可把下载目录设为桌面）", "ok");
+      })
+      .catch(function () { toast("已取消保存", "err"); });
+  });
 
   renderFilters();
   renderCards();
