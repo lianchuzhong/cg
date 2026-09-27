@@ -10,6 +10,9 @@
   var lastBooking = null;
   var toastTimer = null;
 
+  var fProv = $("#fProv"), fCity = $("#fCity"), fDist = $("#fDist"), kwInput = $("#kw");
+  var selProv = "", selCity = "", selDist = "";
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -29,6 +32,46 @@
     return c ? c.label.replace(/^\S+\s?/, "") : key;
   }
 
+  /* ---------- 省市区联动筛选 ---------- */
+  function regionOf(i) { return [i.prov || "", i.city || "", i.dist || ""].join(" "); }
+
+  function uniq(list, key) {
+    var seen = {}, out = [];
+    list.forEach(function (i) {
+      var v = i[key] || "";
+      if (v && !seen[v]) { seen[v] = true; out.push(v); }
+    });
+    return out.sort();
+  }
+
+  /* 依据上级选择，列出该项下真正存在的地区；上级为「全部」时列出全部 */
+  function fillRegion(sel, key, pool) {
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">全部</option>' +
+      uniq(pool, key).map(function (v) {
+        return '<option value="' + esc(v) + '">' + esc(v) + "</option>";
+      }).join("");
+    if (cur && uniq(pool, key).indexOf(cur) !== -1) sel.value = cur;
+    else if (cur) { sel.value = ""; return true; }
+    return false;
+  }
+
+  /* 返回 true 表示级联中有值被清掉，需要继续刷新 */
+  function syncRegions() {
+    var items = window.ITEMS || [];
+    var changed = false;
+    changed = fillRegion(fProv, "prov", items) || changed;
+
+    var poolCity = selProv ? items.filter(function (i) { return i.prov === selProv; }) : items;
+    changed = fillRegion(fCity, "city", poolCity) || changed;
+
+    var poolDist = poolCity.filter(function (i) { return !selCity || i.city === selCity; });
+    changed = fillRegion(fDist, "dist", poolDist) || changed;
+
+    selProv = fProv.value; selCity = fCity.value; selDist = fDist.value;
+    return changed;
+  }
+
   /* ---------- 分类筛选 ---------- */
   function renderFilters() {
     $("#filters").innerHTML = (window.CATS || []).map(function (c) {
@@ -36,10 +79,21 @@
     }).join("");
   }
 
+  function matchKeyword(i, kw) {
+    if (!kw) return true;
+    var hay = [i.name, i.desc, i.addr, i.tags, regionOf(i)].join(" ").toLowerCase();
+    return hay.indexOf(kw) !== -1;
+  }
+
   function visibleItems() {
-    return currentCat === "all"
-      ? window.ITEMS.slice()
-      : window.ITEMS.filter(function (i) { return i.cat === currentCat; });
+    var kw = (kwInput.value || "").trim().toLowerCase();
+    return (window.ITEMS || []).filter(function (i) {
+      if (currentCat !== "all" && i.cat !== currentCat) return false;
+      if (selProv && i.prov !== selProv) return false;
+      if (selCity && i.city !== selCity) return false;
+      if (selDist && i.dist !== selDist) return false;
+      return matchKeyword(i, kw);
+    });
   }
 
   function renderCards() {
@@ -52,7 +106,7 @@
           '<div class="card-emoji">' + esc(i.emoji) + "</div>" +
           "<div>" +
             '<h3 class="card-name">' + esc(i.name) + "</h3>" +
-            '<div class="card-meta">' + esc(i.addr) + " · " + esc(i.duration) + "</div>" +
+            '<div class="card-meta">' + esc(regionOf(i)) + " · " + esc(i.addr) + " · " + esc(i.duration) + "</div>" +
           "</div>" +
         "</div>" +
         '<p class="card-desc">' + esc(i.desc) + "</p>" +
@@ -65,6 +119,17 @@
         "</div>" +
       "</article>";
     }).join("");
+
+    var kw = (kwInput.value || "").trim();
+    var parts = [];
+    if (currentCat !== "all") parts.push(catLabel(currentCat));
+    if (selProv) parts.push(selProv);
+    if (selCity) parts.push(selCity);
+    if (selDist) parts.push(selDist);
+    if (kw) parts.push("“" + kw + "”");
+    $("#resultCount").textContent = "共 " + list.length + " 个项目" +
+      (parts.length ? "（" + parts.join(" · ") + "）" : "");
+
     $("#listEmpty").hidden = list.length > 0;
   }
 
@@ -104,12 +169,12 @@
 
     openModal('' +
       '<h3 class="m-title">预约 ' + esc(item.name) + "</h3>" +
-      '<p class="m-sub">无需注册登录，填昵称或手机号任一项即可提交</p>' +
+      '<p class="m-sub">昵称需全站唯一，填昵称或手机号任一项即可提交</p>' +
 
       '<div class="m-summary">' +
         '<div class="card-emoji">' + esc(item.emoji) + "</div>" +
         '<div class="m-sum-body">' +
-          '<div class="m-sum-name">' + esc(item.addr) + "</div>" +
+          '<div class="m-sum-name">' + esc(regionOf(item)) + " · " + esc(item.addr) + "</div>" +
           '<div class="m-sum-meta">' + esc(item.duration) + " · " + esc((item.tags || []).join(" / ")) + "</div>" +
         "</div>" +
         '<div class="m-price">¥' + esc(item.price) + "</div>" +
@@ -118,7 +183,7 @@
       '<form id="bookForm" data-item="' + esc(item.id) + '" novalidate>' +
         '<div class="form-grid">' +
           '<label class="field">' +
-            '<span class="field-label">昵称 <i>*</i> 或 手机号 <i>*</i>（任填一项）</span>' +
+            '<span class="field-label">昵称 <i>*</i>（唯一，不可重复） 或 手机号（任填一项）</span>' +
             '<input class="input" name="name" type="text" maxlength="20" placeholder="如：小明" autocomplete="nickname">' +
           "</label>" +
           '<label class="field">' +
@@ -162,6 +227,15 @@
     return !msg;
   }
 
+  /* 昵称占用时实时提示，避免等到提交才知道 */
+  document.addEventListener("input", function (e) {
+    var el = e.target;
+    if (!el.name || el.name !== "name" || !el.form || el.form.id !== "bookForm") return;
+    var v = el.value.trim();
+    if (!v || v.length > 20) return void formErr("");
+    if (Store.nameTaken(v)) formErr("昵称「" + v + "」已被使用，请换一个昵称");
+  });
+
   document.addEventListener("submit", function (e) {
     var f = e.target;
     if (f.id !== "bookForm") return;
@@ -179,6 +253,7 @@
 
     if (!name && !phone) return void formErr("请至少填写昵称或手机号其中一项");
     if (name && name.length > 20) return void formErr("昵称最多 20 个字");
+    if (name && Store.nameTaken(name)) return void formErr("昵称「" + name + "」已被使用，请换一个昵称");
     if (phone && !/^1[3-9]\d{9}$/.test(phone)) return void formErr("手机号格式不正确，请填 11 位");
     if (!date) return void formErr("请选择预约日期");
     if (date < Store.today()) return void formErr("日期不能早于今天");
@@ -196,6 +271,10 @@
         itemName: item.name,
         itemEmoji: item.emoji,
         cat: item.cat,
+        prov: item.prov || "",
+        city: item.city || "",
+        dist: item.dist || "",
+        addr: item.addr || "",
         unitPrice: item.price,
         qty: qty,
         date: date,
@@ -236,8 +315,7 @@
       '<div style="display:flex;gap:10px;margin-top:20px">' +
         '<button class="btn btn-ghost" style="flex:1" data-save>保存到桌面</button>' +
         '<button class="btn" style="flex:1" data-close>完成</button>' +
-      "</div>" +
-      '<p class="hint">预约数据仅保存在本机浏览器，不会上传到网络仓库。</p>');
+      "</div>");
   }
 
   document.addEventListener("click", function (e) {
@@ -309,6 +387,28 @@
     }
   });
 
+  /* ---------- 搜索 / 省市区筛选 ---------- */
+  function applyFilter() { syncRegions(); renderCards(); }
+
+  fProv.addEventListener("change", function () { selProv = fProv.value; selCity = ""; selDist = ""; applyFilter(); });
+  fCity.addEventListener("change", function () { selCity = fCity.value; selDist = ""; applyFilter(); });
+  fDist.addEventListener("change", function () { selDist = fDist.value; applyFilter(); });
+
+  kwInput.addEventListener("input", renderCards);
+  kwInput.addEventListener("search", renderCards);
+  kwInput.addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });
+
+  $("#resetFilter").addEventListener("click", function () {
+    kwInput.value = "";
+    currentCat = "all";
+    selProv = selCity = selDist = "";
+    fProv.value = fCity.value = fDist.value = "";
+    renderFilters();
+    syncRegions();
+    renderCards();
+    toast("已重置筛选", "ok");
+  });
+
   $("#mineSearch").addEventListener("click", renderMine);
   $("#mineKey").addEventListener("keydown", function (e) {
     if (e.key === "Enter") renderMine();
@@ -319,7 +419,7 @@
   });
   $("#mineExport").addEventListener("click", function () {
     var list = Store.all();
-    if (!list.length) return void toast("本机还没有预约记录", "err");
+    if (!list.length) return void toast("还没有预约记录", "err");
     Store.exportJSON(list)
       .then(function (r) {
         toast(r.method === "picker" ? "已保存到 " + r.suggested : "已下载，请在浏览器下载目录查看（可把下载目录设为桌面）", "ok");
@@ -328,6 +428,7 @@
   });
 
   renderFilters();
+  syncRegions();
   renderCards();
   renderMine();
 })();
