@@ -140,7 +140,8 @@ body {
   border-radius: 14px;
 }
 .search-kw { flex: 1 1 180px; width: auto; min-width: 120px; padding: 8px 12px; font-size: 13.5px; }
-.sel-region { flex: 0 0 auto; width: 96px; padding: 8px 24px 8px 10px; font-size: 13.5px; }
+/* 省市区下拉固定 2cm（≈76px）：最长「广东省 / 汕头市 / 澄海区」3 个汉字放得下 */
+.sel-region { flex: 0 0 2cm; width: 2cm; padding: 8px 20px 8px 8px; font-size: 13px; }
 .searchbar .btn-sm { padding: 8px 12px; font-size: 13px; }
 .search-count {
   flex: 0 1 auto;
@@ -373,6 +374,6 @@ tbody tr:last-child td { border-bottom: 0; }
   .searchbar { padding: 8px 10px; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .searchbar::-webkit-scrollbar { display: none; }
   .search-kw { flex: 1 0 150px; min-width: 150px; }
-  .sel-region { flex: 0 0 88px; width: 88px; padding: 7px 22px 7px 8px; font-size: 13px; }
+  .sel-region { flex: 0 0 2cm; width: 2cm; padding: 7px 18px 7px 7px; font-size: 13px; }
   .search-count { flex: 0 0 auto; max-width: 160px; }
 }
