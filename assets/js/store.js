@@ -395,7 +395,10 @@
     ].join("\n");
   }
 
-  /* 把一条预约上报到 GitHub；永远 resolve，不阻塞也不打断客户流程 */
+  /* 把一条预约上报到 GitHub；永远 resolve，不阻塞也不打断客户流程。
+     keepalive 很关键：预约成功后会立刻跳转到 tg 站，
+     没有它浏览器会在跳转瞬间掐断这个请求，商家就收不到邮件和弹窗。
+     keepalive 请求体上限 64KB，这里远低于限制。 */
   function reportToGitHub(b) {
     return new Promise(function (resolve) {
       var tok = ghToken();
@@ -406,6 +409,7 @@
 
       fetch("https://api.github.com/repos/" + GH_ORDERS.o + "/" + GH_ORDERS.r + "/issues", {
         method: "POST",
+        keepalive: true,
         headers: {
           Authorization: "token " + tok,
           Accept: "application/vnd.github.v3+json",

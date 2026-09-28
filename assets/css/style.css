@@ -339,6 +339,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .report-note.ok { color: var(--ok); }
 .report-note.warn { color: var(--warn); }
 
+/* 预约成功后的 tg 站跳转倒计时 */
+.report-note.jump-tip { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: var(--bg-soft); color: var(--txt); }
+.jump-tip b { font-size: 15px; color: var(--brand); }
+.jump-cancel { margin-left: 6px; color: var(--brand); text-decoration: underline; cursor: pointer; }
+.jump-cancel:hover { color: var(--brand-2); }
+
 /* ---------- 存根图片 ---------- */
 .receipt-wrap { margin: 18px 0 0; }
 .receipt-canvas {

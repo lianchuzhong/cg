@@ -151,6 +151,8 @@
   }
 
   function closeModal() {
+    /* 关闭弹窗必须停掉跳转倒计时，否则用户点了「关闭」还会被强行带走 */
+    if (tgTimer) { clearInterval(tgTimer); tgTimer = null; }
     modal.hidden = true;
     modal.className = "modal";
     mBody.innerHTML = "";
@@ -549,6 +551,45 @@
     return r.method === "picker" ? "存根图片已保存到 " + r.suggested : "存根图片已下载（可在浏览器下载目录查看）";
   }
 
+  /* ---------- 预约成功后自动跳转到 tg 站 ----------
+     预约码要「到店出示」，所以不是瞬间闪走，而是弹窗里留几秒倒计时，
+     倒计时结束自动跳转；用户点「留在此页」可以取消。 */
+  var TG_URL = "https://lianchuzhong.github.io/tg/";
+  var TG_REDIRECT_SEC = 8;
+  var tgTimer = null;
+
+  function cancelTgRedirect() {
+    if (tgTimer) { clearInterval(tgTimer); tgTimer = null; }
+    var el = $("#tgGo");
+    if (el) el.textContent = "已取消跳转，可手动点下方按钮前往";
+  }
+
+  function startTgRedirect() {
+    if (tgTimer) clearInterval(tgTimer);
+    var left = TG_REDIRECT_SEC;
+    var box = $("#tgTip"), btn = $("[data-tg]"), cd = $("#tgCount");
+    if (box) box.hidden = false;
+    if (btn) btn.hidden = false;
+
+    function tick() {
+      if (cd) cd.textContent = left;
+      if (left <= 0) { if (tgTimer) clearInterval(tgTimer); tgTimer = null; location.href = TG_URL; return; }
+      left--;
+    }
+    tick();
+    tgTimer = setInterval(tick, 1000);
+  }
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-tg]")) {
+      if (tgTimer) clearInterval(tgTimer);
+      tgTimer = null;
+      location.href = TG_URL;
+      return;
+    }
+    if (e.target.closest("[data-stay]")) return void cancelTgRedirect();
+  });
+
   function showSuccess(b) {
     openModal('' +
       '<div class="ok-icon">🎉</div>' +
@@ -574,9 +615,18 @@
         '<p class="hint">存根是图片，点「保存存根图片」即可存成 PNG 放到本机。</p>' +
       "</div>" +
 
+      '<p class="report-note jump-tip" id="tgTip" hidden>' +
+        '<b id="tgCount">' + TG_REDIRECT_SEC + "</b> 秒后自动跳转 tg 网站… " +
+        '<span id="tgGo" class="jump-cancel" data-stay>留在此页</span>' +
+      "</p>" +
+
       '<div style="display:flex;gap:10px;margin-top:20px">' +
         '<button class="btn btn-ghost" style="flex:1" data-save>保存存根图片</button>' +
-        '<button class="btn" style="flex:1" data-close>完成</button>' +
+        '<button class="btn btn-ghost" style="flex:1" data-close>关闭</button>' +
+      "</div>" +
+
+      '<div style="margin-top:10px">' +
+        '<button class="btn" style="width:100%" data-tg hidden>前往 tg 网站 →</button>' +
       "</div>");
 
     try {
@@ -584,6 +634,8 @@
     } catch (err) {
       toast("存根图片生成失败：" + (err.message || "未知错误"), "err");
     }
+
+    startTgRedirect();
   }
 
   document.addEventListener("click", function (e) {
