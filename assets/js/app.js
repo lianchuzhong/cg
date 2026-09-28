@@ -302,6 +302,7 @@
       showSuccess(lastBooking);
       renderCards();
       renderMine();
+      reportBooking(lastBooking);
     } catch (err) {
       formErr(err.message || "提交失败，请重试");
     } finally {
@@ -309,6 +310,24 @@
       btn.textContent = "提交预约（免预约金）";
     }
   });
+
+  /* ---------- 上报到 GitHub：触发商家邮件 + 电脑弹窗 ---------- */
+  function reportBooking(b) {
+    var el = $("#reportNote");
+    if (!Store.reportToGitHub) return;
+    if (el) el.textContent = "正在通知商家…";
+
+    Store.reportToGitHub(b).then(function (r) {
+      if (!el) return;
+      if (r && r.ok) {
+        el.textContent = "已通知商家（邮件 + 电脑弹窗）";
+        el.className = "report-note ok";
+      } else {
+        el.textContent = "预约已成功，但没能通知到商家。可稍后截图预约码联系店家。";
+        el.className = "report-note warn";
+      }
+    });
+  }
 
   /* ---------- 存根图片：把一条预约画成 PNG，保存到本机 ---------- */
   var RC = {
@@ -547,6 +566,7 @@
       '<div class="sum-row"><span>联系方式</span><span>' + esc([b.name, b.phone].filter(Boolean).join(" / ")) + "</span></div>" +
       (b.note ? '<div class="sum-row"><span>备注</span><span>' + esc(b.note) + "</span></div>" : "") +
       '<div class="sum-total"><span>合计（到店支付）</span><span>¥' + esc(b.amount) + "</span></div>" +
+      '<p class="report-note" id="reportNote">正在通知商家…</p>' +
 
       '<div class="receipt-wrap">' +
         '<div class="field-label">预约存根（图片）</div>' +

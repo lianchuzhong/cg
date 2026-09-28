@@ -335,6 +335,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .sum-row span:first-child { color: var(--txt-dim); }
 .sum-total { display: flex; justify-content: space-between; font-weight: 700; margin-top: 10px; }
 
+.report-note { margin: 12px 0 0; font-size: 12.5px; color: var(--txt-dim); text-align: center; }
+.report-note.ok { color: var(--ok); }
+.report-note.warn { color: var(--warn); }
+
 /* ---------- 存根图片 ---------- */
 .receipt-wrap { margin: 18px 0 0; }
 .receipt-canvas {
