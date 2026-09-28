@@ -184,6 +184,32 @@
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   }
 
+  /* 把 ISO 时间换成本地日期串；createdAt 存的是 UTC ISO，必须按本地时区还原 */
+  function localDay(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  /* 每个商家「今天」收到的预约条数：{ itemId: 数量 }。
+     只统计 createdAt 落在今天的记录，所以隔天自动归零、不累计。
+     已取消 / 已完成的也算「收到了」，只是当天的新增量。 */
+  function todayCounts() {
+    var t = today();
+    var map = {};
+    all().forEach(function (b) {
+      if (!b.itemId || b.status === "canceled") return;
+      if (localDay(b.createdAt) !== t) return;
+      map[b.itemId] = (map[b.itemId] || 0) + 1;
+    });
+    return map;
+  }
+
+  /* 某商家今天收到几条（商家管理台 / 存根等处复用） */
+  function todayCount(itemId) {
+    return todayCounts()[itemId] || 0;
+  }
+
   function csvCell(v) {
     var s = v == null ? "" : String(v);
     if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
@@ -324,6 +350,9 @@
     search: search,
     fmtDateTime: fmtDateTime,
     today: today,
+    localDay: localDay,
+    todayCounts: todayCounts,
+    todayCount: todayCount,
     toCSV: toCSV,
     toJSON: toJSON,
     exportJSON: exportJSON,

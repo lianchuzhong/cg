@@ -100,7 +100,9 @@
   function renderCards() {
     var list = visibleItems();
     var grid = $("#cardGrid");
+    var counts = Store.todayCounts();
     grid.innerHTML = list.map(function (i) {
+      var n = counts[i.id] || 0;
       return '' +
       '<article class="card" data-card="' + esc(i.id) + '">' +
         '<div class="card-top">' +
@@ -108,6 +110,9 @@
           "<div>" +
             '<h3 class="card-name">' + esc(i.name) + "</h3>" +
             '<div class="card-meta">' + esc(regionOf(i)) + " · " + esc(i.addr) + " · " + esc(i.duration) + "</div>" +
+          "</div>" +
+          '<div class="card-today' + (n ? " has" : "") + '" title="今天收到的预约条数，隔天自动归零">' +
+            '<b>' + n + "</b> 单<span>今日预约</span>" +
           "</div>" +
         "</div>" +
         '<p class="card-desc">' + esc(i.desc) + "</p>" +
@@ -295,6 +300,7 @@
         note: note
       });
       showSuccess(lastBooking);
+      renderCards();
       renderMine();
     } catch (err) {
       formErr(err.message || "提交失败，请重试");
@@ -303,6 +309,226 @@
       btn.textContent = "提交预约（免预约金）";
     }
   });
+
+  /* ---------- 存根图片：把一条预约画成 PNG，保存到本机 ---------- */
+  var RC = {
+    w: 420, pad: 26, labelW: 72, gap: 12,
+    ink: "#1b2130", dim: "#6b7488", line: "#e3e6ed",
+    soft: "#f2f4f8", brand: "#cf3f0b", brand2: "#b56508"
+  };
+  /* 画布版面尺寸，布局计算和实际绘制共用同一组数值，保证高度一致 */
+  var RB = {
+    top: 6, headH: 30, headGap: 16, codeH: 92, codeGap: 20,
+    rowH: 26, rowLH: 20, totalGap: 14, totalH: 40,
+    dashGap: 10, footH: 22, footGap: 8
+  };
+  var RC_FONT = '"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif';
+
+  function rcFont(ctx, weight, size) {
+    ctx.font = (weight || 400) + " " + size + "px " + RC_FONT;
+  }
+
+  /* 逐字折行：中文按字断行即可，值里混英文也不会溢出画布 */
+  function rcWrap(ctx, text, maxW) {
+    var chars = String(text == null ? "" : text).split("");
+    var lines = [], line = "";
+    for (var i = 0; i < chars.length; i++) {
+      if (line && ctx.measureText(line + chars[i]).width > maxW) {
+        lines.push(line);
+        line = chars[i];
+      } else {
+        line += chars[i];
+      }
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [""];
+  }
+
+  function rcRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function rcDash(ctx, x1, x2, y) {
+    ctx.save();
+    ctx.strokeStyle = RC.line;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y + 0.5);
+    ctx.lineTo(x2, y + 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function rcRows(b) {
+    var rows = [
+      ["项目", (b.itemEmoji ? b.itemEmoji + " " : "") + (b.itemName || "")],
+      ["分类", catLabel(b.cat)],
+      ["位置", [b.prov, b.city, b.dist, b.addr].filter(Boolean).join(" ")],
+      ["预约日期", b.date],
+      ["时段", b.slot],
+      ["人数", b.people + " 人"],
+      ["份数", b.qty + " 份"],
+      ["联系方式", [b.name, b.phone].filter(Boolean).join(" / ")],
+      ["备注", b.note]
+    ];
+    return rows.filter(function (r) { return r[1]; });
+  }
+
+  function rcLayout(ctx, b) {
+    var maxW = RC.w - RC.pad * 2 - RC.labelW - RC.gap;
+    var rows = rcRows(b).map(function (r) {
+      rcFont(ctx, 400, 13.5);
+      var lines = rcWrap(ctx, r[1], maxW);
+      return { label: r[0], lines: lines, h: RB.rowH + (lines.length - 1) * RB.rowLH };
+    });
+    var h = RB.top + RB.headH + RB.headGap + RB.codeH + RB.codeGap;
+    rows.forEach(function (r) { h += r.h; });
+    h += RB.totalGap + RB.totalH + RB.dashGap + RB.footH + RB.footGap + RB.footH + RC.pad;
+    return { rows: rows, h: h };
+  }
+
+  function renderReceipt(canvas, b) {
+    if (!canvas || !canvas.getContext) return null;
+    var meas = document.createElement("canvas").getContext("2d");
+    if (!meas) return null;
+    var lay = rcLayout(meas, b);
+
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(RC.w * dpr);
+    canvas.height = Math.round(lay.h * dpr);
+    canvas.style.width = RC.w + "px";
+
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.textBaseline = "alphabetic";
+    var W = RC.w, P = RC.pad, y;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, lay.h);
+
+    var grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, RC.brand);
+    grad.addColorStop(1, RC.brand2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, RB.top);
+
+    /* 抬头 */
+    y = RB.top + 25;
+    ctx.textAlign = "left";
+    rcFont(ctx, 700, 17);
+    ctx.fillStyle = RC.ink;
+    ctx.fillText("吃喝玩乐预约", P, y);
+    ctx.textAlign = "right";
+    rcFont(ctx, 400, 12);
+    ctx.fillStyle = RC.dim;
+    ctx.fillText("预约存根", W - P, y);
+
+    /* 预约码 */
+    y = RB.top + RB.headH + RB.headGap;
+    rcRoundRect(ctx, P, y, W - P * 2, RB.codeH, 12);
+    ctx.fillStyle = RC.soft;
+    ctx.fill();
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = RC.line;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.textAlign = "center";
+    rcFont(ctx, 400, 12);
+    ctx.fillStyle = RC.dim;
+    ctx.fillText("预约码（到店出示）", W / 2, y + 28);
+
+    rcFont(ctx, 700, 32);
+    ctx.fillStyle = RC.brand2;
+    ctx.fillText(String(b.code || ""), W / 2, y + 66);
+
+    /* 明细 */
+    y += RB.codeH + RB.codeGap;
+    lay.rows.forEach(function (r, i) {
+      if (i) rcDash(ctx, P, W - P, y);
+      ctx.textAlign = "left";
+      rcFont(ctx, 400, 12.5);
+      ctx.fillStyle = RC.dim;
+      ctx.fillText(r.label, P, y + 17);
+
+      ctx.textAlign = "right";
+      rcFont(ctx, 400, 13.5);
+      ctx.fillStyle = RC.ink;
+      r.lines.forEach(function (ln, k) {
+        ctx.fillText(ln, W - P, y + 17 + k * RB.rowLH);
+      });
+      y += r.h;
+    });
+
+    /* 合计 */
+    y += RB.totalGap;
+    ctx.textAlign = "left";
+    rcFont(ctx, 400, 13.5);
+    ctx.fillStyle = RC.dim;
+    ctx.fillText("合计（到店支付）", P, y + 24);
+    ctx.textAlign = "right";
+    rcFont(ctx, 700, 19);
+    ctx.fillStyle = RC.brand2;
+    ctx.fillText("¥" + b.amount, W - P, y + 26);
+    y += RB.totalH;
+
+    /* 页脚 */
+    y += RB.dashGap;
+    rcDash(ctx, P, W - P, y);
+    y += RB.footH;
+    ctx.textAlign = "center";
+    rcFont(ctx, 400, 11.5);
+    ctx.fillStyle = RC.dim;
+    ctx.fillText(
+      "状态：" + ((Store.STATUS[b.status] || {}).label || b.status || "待确认") +
+      " · 提交于 " + Store.fmtDateTime(b.createdAt),
+      W / 2, y + 13
+    );
+    y += RB.footGap;
+    rcFont(ctx, 400, 11);
+    ctx.fillStyle = "#9aa3b5";
+    ctx.fillText("本存根由「吃喝玩乐预约」自动生成，保存于本机", W / 2, y + 13);
+
+    canvas.width = canvas.width;
+    return canvas;
+  }
+
+  /* toDataURL 是同步的：接在用户点击里直接调 showSaveFilePicker 不会丢失用户手势 */
+  function canvasToBlob(canvas) {
+    var url = canvas.toDataURL("image/png");
+    var bin = atob(url.slice(url.indexOf(",") + 1));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: "image/png" });
+  }
+
+  function receiptFileName(b) {
+    var nm = String(b.itemName || "预约").replace(/[\\/:*?"<>|\r\n\t]/g, "");
+    return "预约存根-" + (b.code || "") + "-" + nm + ".png";
+  }
+
+  function saveReceipt(b, canvas) {
+    var cv = canvas || renderReceipt(document.createElement("canvas"), b);
+    if (!cv) return Promise.reject(new Error("存根图片生成失败"));
+    var blob;
+    try {
+      blob = canvasToBlob(cv);
+    } catch (e) {
+      return Promise.reject(new Error("存根图片生成失败"));
+    }
+    return Store.saveBinary(blob, receiptFileName(b));
+  }
+
+  function savedTip(r) {
+    return r.method === "picker" ? "存根图片已保存到 " + r.suggested : "存根图片已下载（可在浏览器下载目录查看）";
+  }
 
   function showSuccess(b) {
     openModal('' +
@@ -322,20 +548,43 @@
       (b.note ? '<div class="sum-row"><span>备注</span><span>' + esc(b.note) + "</span></div>" : "") +
       '<div class="sum-total"><span>合计（到店支付）</span><span>¥' + esc(b.amount) + "</span></div>" +
 
+      '<div class="receipt-wrap">' +
+        '<div class="field-label">预约存根（图片）</div>' +
+        '<canvas id="receiptCanvas" class="receipt-canvas"></canvas>' +
+        '<p class="hint">存根是图片，点「保存存根图片」即可存成 PNG 放到本机。</p>' +
+      "</div>" +
+
       '<div style="display:flex;gap:10px;margin-top:20px">' +
-        '<button class="btn btn-ghost" style="flex:1" data-save>保存到桌面</button>' +
+        '<button class="btn btn-ghost" style="flex:1" data-save>保存存根图片</button>' +
         '<button class="btn" style="flex:1" data-close>完成</button>' +
       "</div>");
+
+    try {
+      renderReceipt($("#receiptCanvas"), b);
+    } catch (err) {
+      toast("存根图片生成失败：" + (err.message || "未知错误"), "err");
+    }
   }
 
   document.addEventListener("click", function (e) {
-    if (!e.target.closest("[data-save]")) return;
-    if (!lastBooking) return;
-    Store.exportJSON([lastBooking])
-      .then(function (r) {
-        toast(r.method === "picker" ? "已保存到 " + r.suggested : "已下载，请在浏览器下载目录查看（可把下载目录设为桌面）", "ok");
-      })
-      .catch(function () { toast("已取消保存", "err"); });
+    if (e.target.closest("[data-save]")) {
+      if (!lastBooking) return;
+      saveReceipt(lastBooking, $("#receiptCanvas"))
+        .then(function (r) { toast(savedTip(r), "ok"); })
+        .catch(function (err) {
+          toast(err && err.name === "AbortError" ? "已取消保存" : "存根保存失败：" + ((err && err.message) || "未知错误"), "err");
+        });
+      return;
+    }
+    if (e.target.closest("[data-stub]")) {
+      var b = Store.find(e.target.closest("[data-stub]").dataset.stub);
+      if (!b) return void toast("该预约已不存在", "err");
+      saveReceipt(b)
+        .then(function (r) { toast(savedTip(r), "ok"); })
+        .catch(function (err) {
+          toast(err && err.name === "AbortError" ? "已取消保存" : "存根保存失败：" + ((err && err.message) || "未知错误"), "err");
+        });
+    }
   });
 
   /* ---------- 分享：每个商家一条专属链接 + 一张二维码 ---------- */
@@ -466,6 +715,7 @@
       "</div>" +
       '<div class="bk-side">' +
         '<span class="badge ' + st.cls + '">' + esc(st.label) + "</span>" +
+        '<button class="btn btn-ghost btn-sm" data-stub="' + esc(b.id) + '">存根</button>' +
         (b.status === "pending" ? '<button class="btn btn-ghost btn-sm" data-cancel="' + esc(b.id) + '">取消</button>' : "") +
       "</div>" +
     "</div>";
@@ -510,6 +760,7 @@
     if (cancelBtn) {
       if (!confirm("确定取消这条预约吗？")) return;
       Store.setStatus(cancelBtn.dataset.cancel, "canceled");
+      renderCards();
       renderMine();
       toast("已取消", "ok");
     }
@@ -568,5 +819,16 @@
     if (!findItem(id)) return void toast("链接里的项目不存在或已下架", "err");
     highlightCard(id);
     openBooking(id);
+  })();
+
+  /* 跨零点自动归零：页面一直开着也不用手动刷新 */
+  (function watchDayRollover() {
+    var day = Store.today();
+    setInterval(function () {
+      var now = Store.today();
+      if (now === day) return;
+      day = now;
+      renderCards();
+    }, 30000);
   })();
 })();
