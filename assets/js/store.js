@@ -241,6 +241,34 @@
     return Promise.resolve({ ok: true, method: "download", suggested: suggested });
   }
 
+  /* 保存二进制文件（如二维码 PNG）：与 saveToFile 一样优先让用户直接存到桌面 */
+  function saveBinary(blob, filename) {
+    var suggested = "E:\\桌面1\\" + filename;
+
+    if (typeof window.showSaveFilePicker === "function") {
+      return window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "PNG 图片", accept: { "image/png": [filename.split(".").pop()] } }]
+      }).then(function (handle) {
+        return handle.createWritable().then(function (w) {
+          return w.write(blob).then(function () { return w.close(); });
+        });
+      }).then(function () {
+        return { ok: true, method: "picker", suggested: suggested };
+      });
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    return Promise.resolve({ ok: true, method: "download", suggested: suggested });
+  }
+
   function stamp() {
     var d = new Date();
     return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes());
@@ -300,6 +328,7 @@
     toJSON: toJSON,
     exportJSON: exportJSON,
     exportCSV: exportCSV,
-    importJSON: importJSON
+    importJSON: importJSON,
+    saveBinary: saveBinary
   };
 })(window);

@@ -9,6 +9,7 @@
   var currentCat = "all";
   var lastBooking = null;
   var toastTimer = null;
+  var shareItem = null;
 
   var fProv = $("#fProv"), fCity = $("#fCity"), fDist = $("#fDist"), kwInput = $("#kw");
   var selProv = "", selCity = "", selDist = "";
@@ -101,7 +102,7 @@
     var grid = $("#cardGrid");
     grid.innerHTML = list.map(function (i) {
       return '' +
-      '<article class="card">' +
+      '<article class="card" data-card="' + esc(i.id) + '">' +
         '<div class="card-top">' +
           '<div class="card-emoji">' + esc(i.emoji) + "</div>" +
           "<div>" +
@@ -115,7 +116,10 @@
         }).join("") + "</div>" +
         '<div class="card-foot">' +
           '<div class="price">¥' + esc(i.price) + "<small>/" + esc(i.unit) + "</small></div>" +
-          '<button class="btn" data-book="' + esc(i.id) + '">立即预约</button>' +
+          '<div class="card-acts">' +
+            '<button class="btn btn-ghost btn-sm" data-share="' + esc(i.id) + '">分享</button>' +
+            '<button class="btn" data-book="' + esc(i.id) + '">立即预约</button>' +
+          "</div>" +
         "</div>" +
       "</article>";
     }).join("");
@@ -134,16 +138,22 @@
   }
 
   /* ---------- 弹窗 ---------- */
-  function openModal(html) {
+  function openModal(html, wide) {
     mBody.innerHTML = html;
+    modal.className = wide ? "modal modal-wide" : "modal";
     modal.hidden = false;
     document.body.style.overflow = "hidden";
   }
 
   function closeModal() {
     modal.hidden = true;
+    modal.className = "modal";
     mBody.innerHTML = "";
+    shareItem = null;
     document.body.style.overflow = "";
+    Array.prototype.forEach.call(document.querySelectorAll(".card.hit"), function (el) {
+      el.classList.remove("hit");
+    });
   }
 
   document.addEventListener("click", function (e) {
@@ -328,6 +338,121 @@
       .catch(function () { toast("已取消保存", "err"); });
   });
 
+  /* ---------- 分享：每个商家一条专属链接 + 一张二维码 ---------- */
+  function findItem(id) {
+    var list = window.ITEMS || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  /* 去掉当前页面的查询串和 hash，保留站点根路径，拼出该商家的专属地址 */
+  function shareUrl(itemId) {
+    var base = location.href.split("#")[0].split("?")[0];
+    return base + "?i=" + encodeURIComponent(itemId);
+  }
+
+  function shareText(item) {
+    return item.emoji + " " + item.name + "\n" +
+      regionOf(item) + " " + item.addr + "\n" +
+      "¥" + item.price + "/" + item.unit + " · " + item.duration + "\n" +
+      "点链接或扫码直接预约：\n" + shareUrl(item.id);
+  }
+
+  function copyText(text, okMsg) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      toast(ok ? okMsg : "复制失败，请长按/选中上面的链接手动复制", ok ? "ok" : "err");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg, "ok"); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function highlightCard(itemId) {
+    Array.prototype.forEach.call(document.querySelectorAll(".card.hit"), function (el) {
+      el.classList.remove("hit");
+    });
+    var card = document.querySelector('[data-card="' + itemId + '"]');
+    if (!card) return false;
+    card.classList.add("hit");
+    if (typeof card.scrollIntoView === "function") card.scrollIntoView({ block: "center" });
+    return true;
+  }
+
+  function openShare(itemId) {
+    var item = findItem(itemId);
+    if (!item) return toast("该项目不存在", "err");
+    shareItem = item;
+    highlightCard(item.id);
+
+    openModal('' +
+      '<h3 class="m-title">分享 · ' + esc(item.emoji + " " + item.name) + "</h3>" +
+      '<p class="m-sub">把这个链接或二维码发给客人，对方点开 / 扫码就直接进入「' + esc(item.name) + "」的预约页</p>" +
+
+      '<div class="share-body">' +
+        '<div class="share-qr"><canvas id="qrCanvas"></canvas></div>' +
+        '<div class="share-side">' +
+          '<div>' +
+            '<span class="field-label">本商家预约地址</span>' +
+            '<input class="input" id="shareUrl" readonly value="' + esc(shareUrl(item.id)) + '">' +
+          "</div>" +
+          '<div class="share-btns">' +
+            '<button class="btn btn-sm" data-copy-link>复制链接</button>' +
+            '<button class="btn btn-ghost btn-sm" data-copy-text>复制文案</button>' +
+            '<button class="btn btn-ghost btn-sm" data-save-qr>保存二维码</button>' +
+          "</div>" +
+          '<div class="share-preview">' +
+            esc(item.emoji + " " + item.name) + "<br>" +
+            esc(regionOf(item) + " · " + item.addr) + "<br>" +
+            esc("¥" + item.price + "/" + item.unit + " · " + item.duration) +
+          "</div>" +
+          '<p class="hint">链接和二维码都只指向这一个商家，别的项目不会出现在对方的预约页里。</p>' +
+        "</div>" +
+      "</div>", true);
+
+    try {
+      QR.draw($("#qrCanvas"), shareUrl(item.id), { scale: 6 });
+    } catch (err) {
+      toast("二维码生成失败：" + (err.message || "内容过长"), "err");
+    }
+  }
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-copy-link]") && shareItem) {
+      copyText(shareUrl(shareItem.id), "链接已复制");
+      return;
+    }
+    if (e.target.closest("[data-copy-text]") && shareItem) {
+      copyText(shareText(shareItem), "文案已复制");
+      return;
+    }
+    if (e.target.closest("[data-save-qr]") && shareItem) {
+      var canvas = $("#qrCanvas");
+      if (!canvas) return;
+      var name = shareItem.name.replace(/[\\/:*?"<>|]/g, "");
+      canvas.toBlob(function (blob) {
+        if (!blob) return toast("二维码导出失败", "err");
+        Store.saveBinary(blob, "预约码-" + name + ".png")
+          .then(function (r) {
+            toast(r.method === "picker" ? "已保存到 " + r.suggested : "已下载二维码（可在下载目录查看）", "ok");
+          })
+          .catch(function () { toast("已取消保存", "err"); });
+      }, "image/png");
+    }
+  });
+
   /* ---------- 我的预约 ---------- */
   function bookingRow(b) {
     var st = Store.STATUS[b.status] || { label: b.status, cls: "" };
@@ -377,6 +502,9 @@
 
     var bookBtn = e.target.closest("[data-book]");
     if (bookBtn) return void openBooking(bookBtn.dataset.book);
+
+    var shareBtn = e.target.closest("[data-share]");
+    if (shareBtn) return void openShare(shareBtn.dataset.share);
 
     var cancelBtn = e.target.closest("[data-cancel]");
     if (cancelBtn) {
@@ -431,4 +559,14 @@
   syncRegions();
   renderCards();
   renderMine();
+
+  /* 深链：分享出去的 ?i=<id> 直接打开该商家的预约页 */
+  (function applyShareLink() {
+    var m = /[?&]i=([^&#]*)/.exec(location.search);
+    if (!m) return;
+    var id = decodeURIComponent(m[1] || "");
+    if (!findItem(id)) return void toast("链接里的项目不存在或已下架", "err");
+    highlightCard(id);
+    openBooking(id);
+  })();
 })();
