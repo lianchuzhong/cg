@@ -88,12 +88,17 @@
 
   function visibleItems() {
     var kw = (kwInput.value || "").trim().toLowerCase();
-    return (window.ITEMS || []).filter(function (i) {
+    var list = (window.ITEMS || []).filter(function (i) {
       if (currentCat !== "all" && i.cat !== currentCat) return false;
       if (selProv && i.prov !== selProv) return false;
       if (selCity && i.city !== selCity) return false;
       if (selDist && i.dist !== selDist) return false;
       return matchKeyword(i, kw);
+    });
+    // 置顶商家排最前；sort 稳定，同组内保持原有顺序
+    return list.sort(function (a, b) {
+      var pa = a.pinned ? 0 : 1, pb = b.pinned ? 0 : 1;
+      return pa - pb;
     });
   }
 
