@@ -24,6 +24,22 @@ window.ITEMS = [
     pinned: true
   },
   {
+    id: "climb",
+    name: "室内攀岩体验课",
+    cat: "relax",
+    emoji: "🧗",
+    price: 128,
+    unit: "含教练",
+    duration: "约 2 小时",
+    prov: "广东省",
+    city: "汕头市",
+    dist: "潮阳区",
+    addr: "体育馆 B 馆 1 层",
+    desc: "新人友好，教练先讲安全与手法，岩鞋护具全套提供。",
+    tags: ["零基础", "含装备", "教练陪同"],
+    pinned: true
+  },
+  {
     id: "hotpot",
     name: "川味老火锅",
     cat: "food",
@@ -112,21 +128,6 @@ window.ITEMS = [
     addr: "养生街 3 号 2 楼",
     desc: "泰式足疗 + 肩颈推拿，技师均持证，安静独立包间。",
     tags: ["技师可指定", "独立包间", "含茶饮"]
-  },
-  {
-    id: "climb",
-    name: "室内攀岩体验课",
-    cat: "relax",
-    emoji: "🧗",
-    price: 128,
-    unit: "含教练",
-    duration: "约 2 小时",
-    prov: "广东省",
-    city: "汕头市",
-    dist: "潮阳区",
-    addr: "体育馆 B 馆 1 层",
-    desc: "新人友好，教练先讲安全与手法，岩鞋护具全套提供。",
-    tags: ["零基础", "含装备", "教练陪同"]
   }
 ];
 
