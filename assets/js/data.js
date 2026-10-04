@@ -8,6 +8,22 @@ window.CITY_DISTRICTS = {
 
 window.ITEMS = [
   {
+    id: "nightbar",
+    name: "精酿小酒馆",
+    cat: "drink",
+    emoji: "🍻",
+    price: 88,
+    unit: "人均",
+    duration: "约 3 小时",
+    prov: "广东省",
+    city: "汕头市",
+    dist: "龙湖区",
+    addr: "江畔路 5 号 2 楼",
+    desc: "12 款轮换精酿，驻唱每周三至周五，安静角落适合聊天。",
+    tags: ["驻唱", "包厢", "21:00 后入场"],
+    pinned: true
+  },
+  {
     id: "hotpot",
     name: "川味老火锅",
     cat: "food",
@@ -36,21 +52,6 @@ window.ITEMS = [
     addr: "解放大道 12 号 B1",
     desc: "60+ 品类自助，澳洲牛舌、原切牛肉、现烤生蚝无限续，畅饮区另有精酿。",
     tags: ["自助", "含饮料", "拼桌"]
-  },
-  {
-    id: "nightbar",
-    name: "精酿小酒馆",
-    cat: "drink",
-    emoji: "🍻",
-    price: 88,
-    unit: "人均",
-    duration: "约 3 小时",
-    prov: "广东省",
-    city: "汕头市",
-    dist: "龙湖区",
-    addr: "江畔路 5 号 2 楼",
-    desc: "12 款轮换精酿，驻唱每周三至周五，安静角落适合聊天。",
-    tags: ["驻唱", "包厢", "21:00 后入场"]
   },
   {
     id: "tea",
