@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>吃喝玩乐预约 · 轻松订好每一天</title>
+<meta name="description" content="吃喝玩乐在线预约，无需注册登录，填昵称或手机号即可预约。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎉</text></svg>">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top">
+      <span class="brand-logo">🎉</span>
+      <span class="brand-text">吃喝玩乐<em>预约</em></span>
+    </a>
+    <nav class="site-nav">
+      <a href="#list">全部项目</a>
+      <a href="#mine">我的预约</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap hero-inner">
+    <h1>吃喝玩乐，一站搞定</h1>
+    <p class="hero-sub">无需注册、无需登录，填个<b>昵称</b>或<b>手机号</b>就能下单预约</p>
+    <div class="hero-tags">
+      <span class="tag">🍜 美食</span>
+      <span class="tag">🍻 酒水</span>
+      <span class="tag">🎬 玩乐</span>
+      <span class="tag">💆 休闲</span>
+    </div>
+  </div>
+</section>
+
+<main class="wrap">
+
+  <section class="section" id="list">
+    <div class="section-head">
+      <h2>选择要玩的项目</h2>
+      <div class="filters" id="filters" role="tablist"></div>
+    </div>
+
+    <div class="searchbar">
+      <input type="search" id="kw" class="input search-kw" placeholder="搜索项目名 / 描述 / 地址 / 标签" maxlength="30" aria-label="搜索项目">
+      <select class="input sel-region" id="fProv" aria-label="省份"></select>
+      <select class="input sel-region" id="fCity" aria-label="城市"></select>
+      <select class="input sel-region" id="fDist" aria-label="区县"></select>
+      <button class="btn btn-ghost btn-sm" id="resetFilter">重置</button>
+      <span class="search-count" id="resultCount"></span>
+    </div>
+
+    <div class="grid" id="cardGrid"></div>
+    <p class="empty" id="listEmpty" hidden>没有符合条件的项目，换个关键词或地区试试</p>
+  </section>
+
+  <section class="section" id="mine">
+    <div class="section-head">
+      <h2>我的预约</h2>
+      <div class="mine-tools">
+        <input type="text" id="mineKey" class="input input-sm" placeholder="输入预约时填写的昵称或手机号" maxlength="20">
+        <button class="btn btn-ghost btn-sm" id="mineSearch">查询</button>
+        <button class="btn btn-ghost btn-sm" id="mineClear">清空</button>
+        <button class="btn btn-ghost btn-sm" id="mineExport">导出全部预约</button>
+      </div>
+    </div>
+    <div id="mineList" class="mine-list"></div>
+    <p class="empty" id="mineEmpty">还没有查询记录。完成预约后，用昵称或手机号即可查回。</p>
+  </section>
+
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-mask" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <button class="modal-close" data-close aria-label="关闭">✕</button>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/qr.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
