@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商家管理后台 · 吃喝玩乐预约</title>
+<style>
+:root{--bg:#f5f6f9;--card:#fff;--primary:#cf3f0b;--line:#e3e6ed;--txt:#1b2130;--txt-dim:#6b7488;--success:#059669;--danger:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.header-inner{max-width:1400px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+h1{font-size:20px}
+.container{max-width:1400px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(320px,380px)1fr;gap:20px;align-items:start}
+@media(max-width:900px){.container{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.panel-header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fafbfc;flex-wrap:wrap}
+.panel-title{font-size:15px;font-weight:600}
+.btn{padding:7px 14px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-size:14px;transition:.15s;white-space:nowrap}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:#b83509}
+.btn-danger{color:var(--danger)}
+.btn-small{padding:4px 8px;font-size:12px}
+.list{max-height:calc(100vh - 220px);overflow:auto}
+.item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #f0f2f5;cursor:pointer;text-align:left;width:100%;border:none;background:none}
+.item:hover{background:#f9fafb}
+.item.active{background:#fff4ee;box-shadow:inset 3px 0 0 var(--primary)}
+.item-info{flex:1}
+.item-name{font-weight:600;margin-bottom:4px}
+.item-meta{font-size:12px;color:var(--txt-dim);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{padding:2px 6px;border-radius:999px;background:#f0f2f5;font-size:11px}
+.badge-top{background:#fef3c7;color:#92400e}
+.form{padding:20px;display:grid;gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:13px;color:var(--txt-dim)}
+input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
+textarea{resize:vertical;min-height:80px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--line)}
+.empty{padding:40px;text-align:center;color:var(--txt-dim)}
+.checkbox{flex-direction:row;align-items:center;gap:8px}
+.chip{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#f5f5f5;font-size:12px;cursor:pointer}
+.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}</style></head>
+<body>
+<header>
+  <div class="header-inner">
+    <h1>商家管理后台 · 吃喝玩乐预约</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnNew">+ 新增商家</button>
+      <button class="btn" id="btnExport">导出数据(JSON)</button>
+      <button class="btn" id="btnImport">导入数据(JSON)</button>
+      <button class="btn btn-primary" id="btnSave">保存到数据文件</button>
+    </div>
+  </div>
+</header>
+<div class="container">
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">商家列表</div>
+      <input id="search" placeholder="搜索名称/标签/地址..." style="padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;max-width:200px">
+    </div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty" hidden>暂无商家</div>
+  </section>
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">商家编辑</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-small" id="btnDuplicate">复制</button>
+        <button class="btn btn-small btn-danger" id="btnDelete">删除</button>
+      </div>
+    </div>
+    <form class="form" id="form">
+      <div class="grid">
+        <div class="field"><label>商家ID</label><input name="id" readonly placeholder="自动生成"></div>
+        <div class="field"><label>名称 *</label><input name="name" required></div>
+        <div class="field"><label>分类 *</label><select name="cat"><option value="food">美食</option><option value="drink">酒水</option><option value="fun">玩乐</option><option value="relax">休闲</option></select></div>
+        <div class="field"><label>图标(emoji)</label><input name="emoji" maxlength="2"></div>
+        <div class="field"><label>价格 *</label><input name="price" type="number" min="0"></div>
+        <div class="field"><label>单位</label><input name="unit"></div>
+        <div class="field"><label>时长</label><input name="duration"></div>
+        <div class="field"><label>省份</label><input name="prov"></div>
+        <div class="field"><label>城市</label><input name="city"></div>
+        <div class="field"><label>区县</label><input name="dist"></div>
+        <div class="field"><label>地址</label><input name="addr"></div>
+      </div>
+      <div class="field"><label>简介</label><textarea name="desc"></textarea></div>
+      <div class="field"><label>标签 (逗号分隔)</label><input name="tags" placeholder="包间,可订座"></div>
+      <div class="field checkbox"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="pinned">置顶（首页优先显示）</label></div>
+      <div class="actions"><button type="submit" class="btn btn-primary">保存商家信息</button><button type="button" class="btn" id="btnClear">清空表单</button></div>
+    </form>
+  </section>
+</div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+<script>
+const ITEMS_KEY='cg.items.v1';
+const dataPath='C:\\Users\\Administrator\\cg\\assets\\js\\data.js';
+let items=[];
+let current=null;
+function load(){try{const s=localStorage.getItem(ITEMS_KEY);if(s){items=JSON.parse(s);}}catch(e){items=[]}if(!items.length){try{const def=window.opener?null:null;if(typeof window.ITEMS_FROM_PAGE==='undefined'){/*fallback*/}items=clone((window.ITEMS||[]));}catch(e){}}render();}
+function clone(a){return JSON.parse(JSON.stringify(a||[]));}
+function genId(){return 'm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function saveLS(){localStorage.setItem(ITEMS_KEY,JSON.stringify(items));}
+function render(){
+  const list=document.getElementById('list');list.innerHTML='';
+  const kw=(document.getElementById('search').value||'').trim().toLowerCase();
+  let filtered=items.slice();
+  if(kw){filtered=items.filter(i=>[i.name,i.desc,i.addr,(i.tags||[]).join(',')].join(' ').toLowerCase().includes(kw));}
+  filtered.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||(a.name||'').localeCompare(b.name||''));
+  if(!filtered.length){document.getElementById('empty').hidden=false;}else{document.getElementById('empty').hidden=true;}
+  filtered.forEach(i=>{
+    const el=document.createElement('button');el.className='item'+(current&&current.id===i.id?' active':'');
+    el.innerHTML='<div class="item-info"><div class="item-name">'+escapeHtml(i.name||'未命名')+(i.pinned?'<span class="badge badge-top" style="margin-left:6px">置顶</span>':'')+'</div><div class="item-meta">'+(i.cat||'')+' · ¥'+(i.price||0)+'/'+(i.unit||'')+' · '+escapeHtml(i.addr||'')+'</div></div>';
+    el.onclick=()=>select(i.id);list.appendChild(el);
+  });
+}
+function select(id){current=items.find(x=>x.id===id)||null;fillForm(current);}
+function fillForm(i){const f=document.getElementById('form');if(!i){f.reset();f.id.value='';current=null;return;}f.id.value=i.id||'';f.name.value=i.name||'';f.cat.value=i.cat||'food';f.emoji.value=i.emoji||'';f.price.value=i.price||0;f.unit.value=i.unit||'';f.duration.value=i.duration||'';f.prov.value=i.prov||'';f.city.value=i.city||'';f.dist.value=i.dist||'';f.addr.value=i.addr||'';f.desc.value=i.desc||'';f.tags.value=(i.tags||[]).join(',');f.pinned.checked=!!i.pinned;}
+function getForm(){const f=document.getElementById('form');const tags=f.tags.value.split(',').map(s=>s.trim()).filter(Boolean);return{id:f.id.value||genId(),name:f.name.value.trim(),cat:f.cat.value,emoji:f.emoji.value.trim(),price:parseFloat(f.price.value)||0,unit:f.unit.value.trim(),duration:f.duration.value.trim(),prov:f.prov.value.trim(),city:f.city.value.trim(),dist:f.dist.value.trim(),addr:f.addr.value.trim(),desc:f.desc.value.trim(),tags,pinned:!!f.pinned.checked};}
+document.getElementById('form').onsubmit=e=>{e.preventDefault();const d=getForm();const idx=items.findIndex(x=>x.id===d.id);if(idx>=0)items[idx]=d;else items.push(d);current=d;saveLS();render();alert('已保存');};
+document.getElementById('btnNew').onclick=()=>{current=null;fillForm(null);document.getElementById('form').name.focus();};
+document.getElementById('btnClear').onclick=()=>fillForm(null);
+document.getElementById('btnDuplicate').onclick=()=>{if(!current)return;const d=clone(current);d.id=genId();d.name=d.name+'(副本)';items.push(d);current=d;saveLS();render();fillForm(d);};
+document.getElementById('btnDelete').onclick=()=>{if(!current)return;if(!confirm('确定删除该商家？'))return;items=items.filter(x=>x.id!==current.id);current=null;saveLS();render();fillForm(null);};
+document.getElementById('search').oninput=render;
+document.getElementById('btnExport').onclick=()=>{const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),items},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='商家数据.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);};
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);const arr=p.items||p;items=arr.map(x=>({...x,pinned:!!x.pinned,id:x.id||genId()}));saveLS();render();alert('导入成功');}catch(err){alert('导入失败:'+err.message);}};r.readAsText(f);e.target.value='';};
+document.getElementById('btnSave').onclick=()=>{
+  const js='window.CITY_DISTRICTS = {\n  "汕头市": ["金平区","龙湖区","濠江区","潮阳区","潮南区","澄海区"]\n};\n\nwindow.ITEMS = '+JSON.stringify(items.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)),null,2)+';\n\nwindow.CATS = [\n  {key:"all",label:"全部"},\n  {key:"food",label:"🍜 美食"},\n  {key:"drink",label:"🍻 酒水"},\n  {key:"fun",label:"🎬 玩乐"},\n  {key:"relax",label:"💆 休闲"}\n];\n';
+  const blob=new Blob([js],{type:'text/javascript;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.js';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  alert('已下载 data.js，请替换到 cg/assets/js/data.js');
+};
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"&#39;");}
+load();
+</script>
+</body>
+</html>
