@@ -41,8 +41,34 @@ textarea{resize:vertical;min-height:80px}
 .empty{padding:40px;text-align:center;color:var(--txt-dim)}
 .checkbox{flex-direction:row;align-items:center;gap:8px}
 .chip{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#f5f5f5;font-size:12px;cursor:pointer}
-.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}</style></head>
+.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* ---------- 登录遮罩 ---------- */
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate[hidden]{display:none}
+.gate-card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);width:100%;max-width:400px;overflow:hidden}
+.gate-head{padding:22px;text-align:center;border-bottom:1px solid var(--line);background:#fafbfc}
+.gate-head h2{margin:0 0 4px;font-size:18px}
+.gate-head p{margin:0;font-size:13px;color:var(--txt-dim)}
+.gate-body{padding:26px;display:grid;gap:16px}
+.gate-body input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:15px}
+.gate-err{color:#dc2626;font-size:13px;text-align:center;min-height:20px}
+.gate .btn{width:100%;padding:10px;font-size:15px;font-weight:600}
+</style></head>
 <body>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-head">
+      <h2>商家管理后台</h2>
+      <p>吃喝玩乐预约 · 请输入登录密码</p>
+    </div>
+    <form class="gate-body" id="gateForm">
+      <input type="password" id="gatePwd" placeholder="登录密码" autocomplete="current-password" autofocus>
+      <div class="gate-err" id="gateErr"></div>
+      <button class="btn btn-primary" type="submit">登录</button>
+    </form>
+  </div>
+</div>
+<div id="app" hidden>
 <header>
   <div class="header-inner">
     <h1>商家管理后台 · 吃喝玩乐预约</h1>
@@ -92,13 +118,34 @@ textarea{resize:vertical;min-height:80px}
     </form>
   </section>
 </div>
+</div>
 <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<script src="assets/js/data.js"></script>
 <script>
+/* 登录校验：纯前端判断，只为挡住随手改动，不是加密保护 */
+var ADMIN_PASSWORD = 'lianchuzhong';
+var gate = document.getElementById('gate');
+var gateForm = document.getElementById('gateForm');
+var gatePwd = document.getElementById('gatePwd');
+var gateErr = document.getElementById('gateErr');
+
+gateForm.addEventListener('submit', function (e) {
+  e.preventDefault();
+  if (gatePwd.value.trim() === ADMIN_PASSWORD) {
+    gate.hidden = true;
+    document.getElementById('app').hidden = false;
+  } else {
+    gateErr.textContent = '密码错误，请重试';
+    gatePwd.select();
+  }
+});
+gatePwd.addEventListener('input', function () { gateErr.textContent = ''; });
+
 const ITEMS_KEY='cg.items.v1';
-const dataPath='C:\\Users\\Administrator\\cg\\assets\\js\\data.js';
 let items=[];
 let current=null;
-function load(){try{const s=localStorage.getItem(ITEMS_KEY);if(s){items=JSON.parse(s);}}catch(e){items=[]}if(!items.length){try{const def=window.opener?null:null;if(typeof window.ITEMS_FROM_PAGE==='undefined'){/*fallback*/}items=clone((window.ITEMS||[]));}catch(e){}}render();}
+/* 优先用后台里编辑过的数据；没有才回落到 data.js 里的初始商家 */
+function load(){try{const s=localStorage.getItem(ITEMS_KEY);if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length){items=p;render();return;}}}catch(e){}items=clone(window.ITEMS||[]);render();}
 function clone(a){return JSON.parse(JSON.stringify(a||[]));}
 function genId(){return 'm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function saveLS(){localStorage.setItem(ITEMS_KEY,JSON.stringify(items));}
@@ -116,10 +163,38 @@ function render(){
   });
 }
 function select(id){current=items.find(x=>x.id===id)||null;fillForm(current);}
-function fillForm(i){const f=document.getElementById('form');if(!i){f.reset();f.id.value='';current=null;return;}f.id.value=i.id||'';f.name.value=i.name||'';f.cat.value=i.cat||'food';f.emoji.value=i.emoji||'';f.price.value=i.price||0;f.unit.value=i.unit||'';f.duration.value=i.duration||'';f.prov.value=i.prov||'';f.city.value=i.city||'';f.dist.value=i.dist||'';f.addr.value=i.addr||'';f.desc.value=i.desc||'';f.tags.value=(i.tags||[]).join(',');f.pinned.checked=!!i.pinned;}
-function getForm(){const f=document.getElementById('form');const tags=f.tags.value.split(',').map(s=>s.trim()).filter(Boolean);return{id:f.id.value||genId(),name:f.name.value.trim(),cat:f.cat.value,emoji:f.emoji.value.trim(),price:parseFloat(f.price.value)||0,unit:f.unit.value.trim(),duration:f.duration.value.trim(),prov:f.prov.value.trim(),city:f.city.value.trim(),dist:f.dist.value.trim(),addr:f.addr.value.trim(),desc:f.desc.value.trim(),tags,pinned:!!f.pinned.checked};}
+/* 注意：form.name / form.id 会被 HTMLFormElement 自带的 id、name 属性遮蔽，
+   直接取到的是字符串而不是输入框，所以必须统一走 f.elements */
+function fillForm(i){
+  const f=document.getElementById('form');const fe=f.elements;
+  if(!i){f.reset();fe.id.value='';current=null;return;}
+  fe.id.value=i.id||'';fe.name.value=i.name||'';fe.cat.value=i.cat||'food';fe.emoji.value=i.emoji||'';
+  fe.price.value=i.price||0;fe.unit.value=i.unit||'';fe.duration.value=i.duration||'';
+  fe.prov.value=i.prov||'';fe.city.value=i.city||'';fe.dist.value=i.dist||'';fe.addr.value=i.addr||'';
+  fe.desc.value=i.desc||'';fe.tags.value=(i.tags||[]).join(',');fe.pinned.checked=!!i.pinned;
+}
+function getForm(){
+  const fe=document.getElementById('form').elements;
+  const tags=fe.tags.value.split(',').map(s=>s.trim()).filter(Boolean);
+  return{
+    id:fe.id.value||genId(),
+    name:fe.name.value.trim(),
+    cat:fe.cat.value,
+    emoji:fe.emoji.value.trim(),
+    price:parseFloat(fe.price.value)||0,
+    unit:fe.unit.value.trim(),
+    duration:fe.duration.value.trim(),
+    prov:fe.prov.value.trim(),
+    city:fe.city.value.trim(),
+    dist:fe.dist.value.trim(),
+    addr:fe.addr.value.trim(),
+    desc:fe.desc.value.trim(),
+    tags:tags,
+    pinned:!!fe.pinned.checked
+  };
+}
 document.getElementById('form').onsubmit=e=>{e.preventDefault();const d=getForm();const idx=items.findIndex(x=>x.id===d.id);if(idx>=0)items[idx]=d;else items.push(d);current=d;saveLS();render();alert('已保存');};
-document.getElementById('btnNew').onclick=()=>{current=null;fillForm(null);document.getElementById('form').name.focus();};
+document.getElementById('btnNew').onclick=()=>{current=null;fillForm(null);document.getElementById('form').elements.name.focus();};
 document.getElementById('btnClear').onclick=()=>fillForm(null);
 document.getElementById('btnDuplicate').onclick=()=>{if(!current)return;const d=clone(current);d.id=genId();d.name=d.name+'(副本)';items.push(d);current=d;saveLS();render();fillForm(d);};
 document.getElementById('btnDelete').onclick=()=>{if(!current)return;if(!confirm('确定删除该商家？'))return;items=items.filter(x=>x.id!==current.id);current=null;saveLS();render();fillForm(null);};
@@ -128,7 +203,8 @@ document.getElementById('btnExport').onclick=()=>{const blob=new Blob([JSON.stri
 document.getElementById('btnImport').onclick=()=>document.getElementById('fileInput').click();
 document.getElementById('fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);const arr=p.items||p;items=arr.map(x=>({...x,pinned:!!x.pinned,id:x.id||genId()}));saveLS();render();alert('导入成功');}catch(err){alert('导入失败:'+err.message);}};r.readAsText(f);e.target.value='';};
 document.getElementById('btnSave').onclick=()=>{
-  const js='window.CITY_DISTRICTS = {\n  "汕头市": ["金平区","龙湖区","濠江区","潮阳区","潮南区","澄海区"]\n};\n\nwindow.ITEMS = '+JSON.stringify(items.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)),null,2)+';\n\nwindow.CATS = [\n  {key:"all",label:"全部"},\n  {key:"food",label:"🍜 美食"},\n  {key:"drink",label:"🍻 酒水"},\n  {key:"fun",label:"🎬 玩乐"},\n  {key:"relax",label:"💆 休闲"}\n];\n';
+  const sorted=items.slice().sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+  const js='window.CITY_DISTRICTS = '+JSON.stringify(window.CITY_DISTRICTS||{},null,2)+';\n\nwindow.ITEMS = '+JSON.stringify(sorted,null,2)+';\n\nwindow.CATS = '+JSON.stringify(window.CATS||[],null,2)+';\n';
   const blob=new Blob([js],{type:'text/javascript;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.js';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
   alert('已下载 data.js，请替换到 cg/assets/js/data.js');

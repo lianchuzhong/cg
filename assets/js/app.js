@@ -116,6 +116,9 @@
       if (selCity && i.city !== selCity) return false;
       if (selDist && i.dist !== selDist) return false;
       return matchKeyword(i, kw);
+    }).sort(function (a, b) {
+      /* 置顶商家排在前面；同样置顶或同样未置顶时保持 data.js 里的原顺序 */
+      return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
     });
   }
 
@@ -124,11 +127,13 @@
     var grid = $("#cardGrid");
     grid.innerHTML = list.map(function (i) {
       return '' +
-      '<article class="card" data-card="' + esc(i.id) + '">' +
+      '<article class="card' + (i.pinned ? " card-pinned" : "") + '" data-card="' + esc(i.id) + '">' +
         '<div class="card-top">' +
           '<div class="card-emoji">' + esc(i.emoji) + "</div>" +
           "<div>" +
-            '<h3 class="card-name">' + esc(i.name) + "</h3>" +
+            '<h3 class="card-name">' + esc(i.name) +
+              (i.pinned ? '<span class="card-pin">置顶</span>' : "") +
+            "</h3>" +
             '<div class="card-meta">' + esc(regionOf(i)) + " · " + esc(i.addr) + " · " + esc(i.duration) + "</div>" +
           "</div>" +
         "</div>" +

@@ -158,6 +158,18 @@ body {
   transition: transform .18s, border-color .18s, box-shadow .18s;
 }
 .card:hover { transform: translateY(-3px); border-color: #cbd2de; box-shadow: var(--shadow); }
+.card-pinned { border-color: #f0c98a; background: linear-gradient(180deg, #fffaf1, var(--card) 60%); }
+.card-pin {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fdf0d5;
+  color: var(--amber-ink);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 2px;
+}
 .card-top { display: flex; gap: 14px; align-items: flex-start; }
 .card-emoji {
   flex: none;

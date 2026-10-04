@@ -9,10 +9,12 @@
 | 页面 | 地址 |
 | --- | --- |
 | 预约首页 | https://lianchuzhong.github.io/cg/ |
+| 商家管理后台 | `admin.html`（本地打开，见下文） |
 | 仓库源码 | https://github.com/lianchuzhong/cg |
 
-> 商家管理台**不在网站里**，是放在你电脑桌面上的离线文件：`E:\桌面1\商家管理台.html`。
-> 双击即可打开，完全离线运行，样式与网站一致。
+> 商家管理后台是**单文件离线页面**，双击 `admin.html` 即可打开，样式与网站一致。
+> 登录密码：`lianchuzhong`。改完商家后点「保存到数据文件」会下载 `data.js`，
+> 用它替换 `assets/js/data.js`，再提交推送，首页置顶顺序即生效。
 
 如果访问不到，通常是 `github.io` 在当前网络被限制，换个网络或用浏览器的代理再试。
 
@@ -63,10 +65,11 @@ python -m http.server 8080
 
 ```
 index.html            预约首页
+admin.html             商家管理后台（离线单文件，密码 lianchuzhong）
 assets/css/style.css  样式
-assets/js/data.js     项目数据（增删改吃喝玩乐项目改这里）
+assets/js/data.js     商家数据（增删改吃喝玩乐项目改这里）
 assets/js/store.js    数据层：本地存储、校验、导出到桌面
-assets/js/app.js      首页交互逻辑
+assets/js/app.js      首页交互逻辑（含置顶排序）
 ```
 
 ## 增删项目
@@ -84,8 +87,17 @@ assets/js/app.js      首页交互逻辑
   duration: "约 2 小时",
   addr: "人民路 88 号 3 楼",
   desc: "一句话介绍",
-  tags: ["包间", "可订位"]
+  tags: ["包间", "可订位"],
+  pinned: true         // 可选：true = 首页置顶显示
 }
 ```
 
 改完刷新页面即可生效。
+
+## 商家置顶
+
+把商家对象的 `pinned` 设为 `true`，首页就会把它排到最前面，并在卡片上显示「置顶」标记。
+首页排序逻辑在 `assets/js/app.js` 的 `visibleItems()`，样式在 `assets/css/style.css` 的
+`.card-pinned` / `.card-pin`；未置顶的商家保持 `data.js` 里的原有顺序。
+
+日常维护直接用 `admin.html`：勾选「置顶」→ 保存 → 导出 `data.js` 覆盖回去即可。
