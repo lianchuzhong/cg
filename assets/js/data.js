@@ -9,18 +9,18 @@ window.CITY_DISTRICTS = {
 window.ITEMS = [
   {
     id: "nightbar",
-    name: "精酿小酒馆",
-    cat: "drink",
+    name: "峡山西沟15元快餐饭盒",
+    cat: "food",
     emoji: "🍻",
-    price: 88,
+    price: 15,
     unit: "人均",
     duration: "约 3 小时",
     prov: "广东省",
     city: "汕头市",
-    dist: "龙湖区",
-    addr: "江畔路 5 号 2 楼",
-    desc: "12 款轮换精酿，驻唱每周三至周五，安静角落适合聊天。",
-    tags: ["驻唱", "包厢", "21:00 后入场"],
+    dist: "潮南区",
+    addr: "峡山西沟",
+    desc: "提前一天预定",
+    tags: ["中午", "晚餐"],
     pinned: true
   },
   {
