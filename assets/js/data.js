@@ -24,6 +24,22 @@ window.ITEMS = [
     pinned: true
   },
   {
+    id: "spa",
+    name: "足道推拿 · 解压套餐",
+    cat: "relax",
+    emoji: "💆",
+    price: 198,
+    unit: "90 分钟",
+    duration: "90 分钟",
+    prov: "广东省",
+    city: "汕头市",
+    dist: "濠江区",
+    addr: "养生街 3 号 2 楼",
+    desc: "泰式足疗 + 肩颈推拿，技师均持证，安静独立包间。",
+    tags: ["技师可指定", "独立包间", "含茶饮"],
+    pinned: true
+  },
+  {
     id: "climb",
     name: "室内攀岩体验课",
     cat: "relax",
@@ -113,21 +129,6 @@ window.ITEMS = [
     addr: "星光广场 9 号 5 楼",
     desc: "大中小包厢，歌单过万，果盘零食自助，时段可选。",
     tags: ["可加时", "果盘自助", "欢唱时段"]
-  },
-  {
-    id: "spa",
-    name: "足道推拿 · 解压套餐",
-    cat: "relax",
-    emoji: "💆",
-    price: 198,
-    unit: "90 分钟",
-    duration: "90 分钟",
-    prov: "广东省",
-    city: "汕头市",
-    dist: "濠江区",
-    addr: "养生街 3 号 2 楼",
-    desc: "泰式足疗 + 肩颈推拿，技师均持证，安静独立包间。",
-    tags: ["技师可指定", "独立包间", "含茶饮"]
   }
 ];
 
